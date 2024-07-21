@@ -27,9 +27,9 @@ static KEYWORDS: Lazy<HashMap<&'static str, TokenType>> = Lazy::new(|| {
 pub struct Scanner<'a> {
     source: &'a str,
     tokens: Vec<Token>,
-    start: u16,
-    current: u16,
-    line: u16,
+    start: usize,
+    current: usize,
+    line: usize,
 }
 
 impl<'a> Scanner<'a> {
@@ -125,11 +125,11 @@ impl<'a> Scanner<'a> {
     }
 
     fn is_at_end(&self) -> bool {
-        self.current >= self.source.len() as u16
+        self.current >= self.source.len()
     }
 
     fn advance(&mut self) -> char {
-        let result = self.source.chars().nth(self.current as usize).unwrap();
+        let result = self.source.chars().nth(self.current).unwrap();
         self.current += 1;
         result
     }
@@ -138,18 +138,18 @@ impl<'a> Scanner<'a> {
         if self.is_at_end() {
             return '\0';
         }
-        self.source.chars().nth(self.current as usize).unwrap()
+        self.source.chars().nth(self.current).unwrap()
     }
 
     fn peek_next(&self) -> char {
-        if self.current+1> self.source.len() as u16 {
+        if self.current+1> self.source.len() {
             return '\0'
         }
-        self.source.chars().nth(self.current as usize + 1).unwrap()
+        self.source.chars().nth(self.current + 1).unwrap()
     }
 
     fn match_char(&mut self, expected: char) -> bool {
-        if self.is_at_end() || self.source.chars().nth(self.current as usize)!=Some(expected) {
+        if self.is_at_end() || self.source.chars().nth(self.current)!=Some(expected) {
             return false
         }
 
@@ -172,7 +172,7 @@ impl<'a> Scanner<'a> {
         // The closing "
         self.advance();
 
-        let value = &self.source[self.start as usize + 1..self.current as usize - 1];
+        let value = &self.source[self.start + 1..self.current - 1];
         self.add_token_literal(TokenType::String, Some(value.to_string()), None);
     }
 
@@ -188,7 +188,7 @@ impl<'a> Scanner<'a> {
             }
         }
 
-        let result = self.source[self.start as usize..self.current as usize].parse();
+        let result = self.source[self.start..self.current].parse();
         self.add_token_literal(TokenType::Number, None, Some(result.unwrap()));
     }
 
@@ -197,7 +197,7 @@ impl<'a> Scanner<'a> {
             self.advance();
         }
 
-        let keywords = &self.source[self.start as usize..self.current as usize];
+        let keywords = &self.source[self.start..self.current];
         let token_type = match KEYWORDS.get(keywords) {
             None => TokenType::Identifier,
             Some(&kt) => kt
@@ -210,7 +210,7 @@ impl<'a> Scanner<'a> {
     }
 
     fn add_token_literal(&mut self, token_type: TokenType, literal_str: Option<String>, literal_num: Option<f32>){
-        let text = &self.source[self.start as usize..self.current as usize];
+        let text = &self.source[self.start..self.current];
         self.tokens.push(Token::new(token_type, text, self.line, literal_str, literal_num));
     }
 
