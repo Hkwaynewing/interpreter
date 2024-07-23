@@ -1,6 +1,8 @@
 mod token;
 mod scanner;
 mod error;
+mod expr;
+mod ast_printer;
 
 use std::env;
 use std::fs;
