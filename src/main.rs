@@ -3,6 +3,7 @@ mod scanner;
 mod error;
 mod expr;
 mod ast_printer;
+mod parser;
 
 use std::env;
 use std::fs;

@@ -13,10 +13,11 @@ binary         → expression operator expression ;
 operator       → "==" | "!=" | "<" | "<=" | ">" | ">="
                | "+"  | "-"  | "*" | "/" ;
 **/
-pub enum Expr{
-    Binary(Box<Expr>, Token, Box<Expr>),
-    Grouping(Box<Expr>),
+pub enum Expr<'a> {
+    Binary(Box<Expr<'a>>, &'a Token, Box<Expr<'a>>),
+    Grouping(Box<Expr<'a>>),
     LiteralNum(Option<f32>),
     LiteralStr(Option<String>),
-    Unary(Token, Box<Expr>),
+    LiteralBool(Option<bool>),
+    Unary(&'a Token, Box<Expr<'a>>),
 }
