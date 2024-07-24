@@ -41,7 +41,7 @@ impl Parser {
         let token_types = &[TokenType::BangEqual, TokenType::EqualEqual];
         let mut expr = self.comparison();
         while self.match_token(token_types) {
-            let op = self.previous();
+            let op = self.previous().clone();
             let right = self.comparison();
             expr = Expr::Binary(Box::new(expr), op, Box::new(right))
         }
@@ -52,7 +52,7 @@ impl Parser {
         let token_types = &[TokenType::Greater, TokenType::GreaterEqual, TokenType::Less, TokenType::LessEqual];
         let mut expr = self.term();
         while self.match_token(token_types) {
-            let op = self.previous();
+            let op = self.previous().clone();
             let right = self.term();
             expr = Expr::Binary(Box::new(expr), op, Box::new(right))
         }
@@ -63,7 +63,7 @@ impl Parser {
         let token_types = &[TokenType::Minus, TokenType::Plus];
         let mut expr = self.factor();
         while self.match_token(token_types) {
-            let op = self.previous();
+            let op = self.previous().clone();
             let right = self.factor();
             expr = Expr::Binary(Box::new(expr), op, Box::new(right))
         }
@@ -74,7 +74,7 @@ impl Parser {
         let token_types = &[TokenType::Slash, TokenType::Star];
         let mut expr = self.unary();
         while self.match_token(token_types) {
-            let op = self.previous();
+            let op = self.previous().clone();
             let right = self.unary();
             expr = Expr::Binary(Box::new(expr), op, Box::new(right))
         }
@@ -83,7 +83,7 @@ impl Parser {
 
     fn unary(&mut self) -> Expr {
         if self.match_token(&[TokenType::Bang, TokenType::Minus]) {
-            let op = self.previous();
+            let op = self.previous().clone();
             let right = self.unary();
             return Expr::Unary(op, Box::new(right));
         }
@@ -92,10 +92,10 @@ impl Parser {
 
     fn primary(&mut self) -> Expr {
         if self.match_token(&[TokenType::Number]) {
-            return Expr::LiteralNum(self.previous().literal_num);
+            return Expr::LiteralNum(self.previous().clone().literal_num);
         }
         if self.match_token(&[TokenType::String]) {
-            return Expr::LiteralStr(self.previous().literal_str.clone());
+            return Expr::LiteralStr(self.previous().clone().literal_str.clone());
         }
         if self.match_token(&[TokenType::True]) {
             return Expr::LiteralBool(Some(true));

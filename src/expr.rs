@@ -12,12 +12,12 @@ unary          → ( "-" | "!" ) expression ;
 binary         → expression operator expression ;
 operator       → "==" | "!=" | "<" | "<=" | ">" | ">="
                | "+"  | "-"  | "*" | "/" ;
-**/
-pub enum Expr<'a> {
-    Binary(Box<Expr<'a>>, &'a Token, Box<Expr<'a>>),
-    Grouping(Box<Expr<'a>>),
+ **/
+pub enum Expr<> {
+    Binary(Box<Expr<>>, Token, Box<Expr<>>),
+    Grouping(Box<Expr<>>),
     LiteralNum(Option<f32>),
     LiteralStr(Option<String>),
     LiteralBool(Option<bool>),
-    Unary(&'a Token, Box<Expr<'a>>),
+    Unary(Token, Box<Expr<>>),
 }

@@ -36,7 +36,7 @@ mod tests {
     #[test]
     fn test_print() {
         let left = Expr::Unary(
-            &Token::new(TokenType::Minus, "-", 1, None, None),
+            Token::new(TokenType::Minus, "-", 1, None, None),
             Box::new(Expr::LiteralNum(Some(123.0))),
         );
         let right = Expr::Grouping(
@@ -44,7 +44,7 @@ mod tests {
         );
         let expr = Expr::Binary(
             Box::new(left),
-            &Token::new(TokenType::Star, "*", 1, None, None),
+            Token::new(TokenType::Star, "*", 1, None, None),
             Box::new(right),
         );
 
