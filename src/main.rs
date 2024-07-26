@@ -1,17 +1,20 @@
+use std::env;
+use std::fs;
+use std::io::{self, Write};
+use std::path::Path;
+use std::sync::Mutex;
+
+use once_cell::sync::Lazy;
+
+use crate::scanner::Scanner;
+
 mod token;
 mod scanner;
 mod error;
 mod expr;
 mod ast_printer;
 mod parser;
-
-use std::env;
-use std::fs;
-use std::io::{self, Write};
-use std::path::Path;
-use std::sync::Mutex;
-use once_cell::sync::Lazy;
-use crate::scanner::Scanner;
+mod Interpreter;
 
 static HAD_ERROR: Lazy<Mutex<bool>> = Lazy::new(|| Mutex::new(false));
 

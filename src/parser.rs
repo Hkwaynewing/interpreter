@@ -1,3 +1,4 @@
+use crate::error::{Error, error_tok};
 use crate::expr::Expr;
 use crate::token::{Token, TokenType};
 
@@ -16,11 +17,90 @@ pub struct Parser {
 }
 
 impl Parser {
+    pub fn parse(&mut self) -> Result<Expr, Error> {
+        self.expression()
+    }
+
     pub fn new(tokens: Vec<Token>) -> Self {
         Self {
             tokens,
             current: 0,
         }
+    }
+
+    fn expression(&mut self) -> Result<Expr, Error> {
+        self.equality()
+    }
+
+    fn equality(&mut self) -> Result<Expr, Error> {
+        let token_types = &[TokenType::BangEqual, TokenType::EqualEqual];
+        self.parse_binary_expr(token_types, Parser::comparison)
+    }
+
+    fn comparison(&mut self) -> Result<Expr, Error> {
+        let token_types = &[TokenType::Greater, TokenType::GreaterEqual, TokenType::Less, TokenType::LessEqual];
+        self.parse_binary_expr(token_types, Parser::term)
+    }
+
+    fn term(&mut self) -> Result<Expr, Error> {
+        let token_types = &[TokenType::Minus, TokenType::Plus];
+        self.parse_binary_expr(token_types, Parser::factor)
+    }
+
+    fn factor(&mut self) -> Result<Expr, Error> {
+        let token_types = &[TokenType::Slash, TokenType::Star];
+        self.parse_binary_expr(token_types, Parser::unary)
+    }
+
+    fn parse_binary_expr<F>(&mut self, token_types: &[TokenType], next_fn: F) -> Result<Expr, Error>
+    where
+        F: Fn(&mut Self) -> Result<Expr, Error>,
+    {
+        let mut left = next_fn(self)?;
+        while self.match_token(token_types) {
+            let op = self.previous().clone();
+            match next_fn(self) {
+                Ok(right) => left = Expr::Binary(Box::new(left), op, Box::new(right)),
+                Err(e) => return Err(e),
+            };
+        }
+        Ok(left)
+    }
+
+    fn unary(&mut self) -> Result<Expr, Error> {
+        if self.match_token(&[TokenType::Bang, TokenType::Minus]) {
+            let op = self.previous().clone();
+            match self.unary() {
+                Ok(right) => return Ok(Expr::Unary(op, Box::new(right))),
+                Err(e) => return Err(e),
+            };
+        }
+        self.primary()
+    }
+
+
+    fn primary(&mut self) -> Result<Expr, Error> {
+        if self.match_token(&[TokenType::Number]) {
+            return Ok(Expr::LiteralNum(self.previous().clone().literal_num));
+        }
+        if self.match_token(&[TokenType::String]) {
+            return Ok(Expr::LiteralStr(self.previous().clone().literal_str.clone()));
+        }
+        if self.match_token(&[TokenType::True]) {
+            return Ok(Expr::LiteralBool(Some(true)));
+        }
+        if self.match_token(&[TokenType::False]) {
+            return Ok(Expr::LiteralBool(Some(false)));
+        }
+        if self.match_token(&[TokenType::Nil]) {
+            return Ok(Expr::LiteralStr(None));
+        }
+        if self.match_token(&[TokenType::LeftParen]) {
+            let expr = self.expression()?;
+            self.consume(TokenType::RightParen, "Expect ')' after expression.")?;
+            return Ok(Expr::Grouping(Box::new(expr)));
+        }
+        Err(Error::ParseError(Option::from("Expect expression.".to_string())))
     }
 
     fn match_token(&mut self, types: &[TokenType]) -> bool {
@@ -31,87 +111,6 @@ impl Parser {
             }
         }
         false
-    }
-
-    fn expression(&mut self) -> Expr {
-        self.equality()
-    }
-
-    fn equality(&mut self) -> Expr {
-        let token_types = &[TokenType::BangEqual, TokenType::EqualEqual];
-        let mut expr = self.comparison();
-        while self.match_token(token_types) {
-            let op = self.previous().clone();
-            let right = self.comparison();
-            expr = Expr::Binary(Box::new(expr), op, Box::new(right))
-        }
-        expr
-    }
-
-    fn comparison(&mut self) -> Expr {
-        let token_types = &[TokenType::Greater, TokenType::GreaterEqual, TokenType::Less, TokenType::LessEqual];
-        let mut expr = self.term();
-        while self.match_token(token_types) {
-            let op = self.previous().clone();
-            let right = self.term();
-            expr = Expr::Binary(Box::new(expr), op, Box::new(right))
-        }
-        expr
-    }
-
-    fn term(&mut self) -> Expr {
-        let token_types = &[TokenType::Minus, TokenType::Plus];
-        let mut expr = self.factor();
-        while self.match_token(token_types) {
-            let op = self.previous().clone();
-            let right = self.factor();
-            expr = Expr::Binary(Box::new(expr), op, Box::new(right))
-        }
-        expr
-    }
-
-    fn factor(&mut self) -> Expr {
-        let token_types = &[TokenType::Slash, TokenType::Star];
-        let mut expr = self.unary();
-        while self.match_token(token_types) {
-            let op = self.previous().clone();
-            let right = self.unary();
-            expr = Expr::Binary(Box::new(expr), op, Box::new(right))
-        }
-        expr
-    }
-
-    fn unary(&mut self) -> Expr {
-        if self.match_token(&[TokenType::Bang, TokenType::Minus]) {
-            let op = self.previous().clone();
-            let right = self.unary();
-            return Expr::Unary(op, Box::new(right));
-        }
-        return self.primary();
-    }
-
-    fn primary(&mut self) -> Expr {
-        if self.match_token(&[TokenType::Number]) {
-            return Expr::LiteralNum(self.previous().clone().literal_num);
-        }
-        if self.match_token(&[TokenType::String]) {
-            return Expr::LiteralStr(self.previous().clone().literal_str.clone());
-        }
-        if self.match_token(&[TokenType::True]) {
-            return Expr::LiteralBool(Some(true));
-        }
-        if self.match_token(&[TokenType::False]) {
-            return Expr::LiteralBool(Some(false));
-        }
-        if self.match_token(&[TokenType::Nil]) {
-            return Expr::LiteralStr(None);
-        }
-        if self.match_token(&[TokenType::LeftParen]) {
-            let expr = self.expression();
-            self.consume(TokenType::RightParen, "Expect ')' after expression.");
-            return Expr::Grouping(Box::new(expr));
-        }
-        unreachable!("Expect expression.")
     }
 
     fn check(&self, token_type: TokenType) -> bool {
@@ -135,12 +134,59 @@ impl Parser {
         self.current >= self.tokens.len()
     }
 
-    fn consume(&mut self, token_type: TokenType, msg: &str) {
+    fn consume(&mut self, token_type: TokenType, msg: &str) -> Result<&Token, Error> {
         if self.check(token_type) {
-            self.advance();
-            return;
+            return Ok(self.advance());
         }
-        panic!("{}", msg)
+        error_tok(self.current_token(), msg);
+        Err(Error::ParseError(Option::from(msg.to_string())))
+    }
+
+    fn synchonize(&mut self) {
+        self.advance();
+        while !self.is_at_end() {
+            if self.previous().token_type == TokenType::Semicolon {
+                return;
+            }
+            let token_type = self.current_token().token_type;
+            if token_type == TokenType::Class
+                || token_type == TokenType::Fun
+                || token_type == TokenType::Var
+                || token_type == TokenType::For
+                || token_type == TokenType::If
+                || token_type == TokenType::While
+                || token_type == TokenType::Print
+                || token_type == TokenType::Return {
+                return;
+            } else {
+                self.advance();
+            }
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_parser() {
+        let tokens = vec![
+            Token::new(TokenType::Number, "123", 1, None, Some(123.0)),
+            Token::new(TokenType::Star, "*", 1, None, None),
+            Token::new(TokenType::Number, "45.67", 1, None, Some(45.67)),
+            Token::new(TokenType::Eof, "", 1, None, None),
+        ];
+        let mut parser = Parser::new(tokens);
+        match parser.parse() {
+            Ok(expr) => {
+                let ast_printer = crate::ast_printer::print(&expr);
+                assert_eq!(ast_printer, "(* 123 45.67)");
+            }
+            Err(e) => {
+                assert!(false);
+            }
+        }
     }
 }
 
