@@ -1,6 +1,7 @@
 use crate::HAD_ERROR;
 use crate::token::{Token, TokenType};
 
+#[derive(Debug)]
 pub enum Error {
     ParseError(Option<String>),
     RuntimeError(Option<String>),

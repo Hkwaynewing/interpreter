@@ -1,6 +1,9 @@
 use std::collections::HashMap;
+
 use once_cell::sync::Lazy;
-use crate::error::error;
+
+use crate::error::{error, Error};
+use crate::HAD_ERROR;
 use crate::token::{Token, TokenType};
 
 static KEYWORDS: Lazy<HashMap<&'static str, TokenType>> = Lazy::new(|| {
@@ -32,8 +35,20 @@ pub struct Scanner<'a> {
     line: usize,
 }
 
+pub fn scan_tokens(input: String) -> Result<Vec<Token>, Error> {
+    let mut scanner: Scanner = Scanner::new(input.as_str());
+
+    scanner.scan_tokens();
+
+    if *HAD_ERROR.lock().unwrap() {
+        Err(Error::ParseError(None))
+    } else {
+        Ok(scanner.tokens)
+    }
+}
+
 impl<'a> Scanner<'a> {
-    pub fn new(source: &'a str) -> Self {
+    fn new(source: &'a str) -> Self {
         Self {
             source,
             tokens: Vec::new(),
@@ -43,14 +58,11 @@ impl<'a> Scanner<'a> {
         }
     }
 
-    pub fn scan_tokens(&mut self) -> &Vec<Token> {
+    fn scan_tokens(&mut self) {
         while !self.is_at_end() {
             self.start = self.current;
             self.scan_token()
         }
-
-        self.tokens.push(Token::new(TokenType::Eof, "", self.line, None, None));
-        &self.tokens
     }
 
     fn scan_token(&mut self) {
@@ -73,29 +85,28 @@ impl<'a> Scanner<'a> {
                 } else {
                     self.add_token(TokenType::Bang);
                 }
-            },
+            }
             '=' => {
                 if self.match_char('=') {
                     self.add_token(TokenType::EqualEqual);
                 } else {
                     self.add_token(TokenType::Equal);
                 }
-            },
+            }
             '<' => {
                 if self.match_char('=') {
                     self.add_token(TokenType::LessEqual);
                 } else {
                     self.add_token(TokenType::Less);
                 }
-            },
+            }
             '>' => {
                 if self.match_char('=') {
                     self.add_token(TokenType::GreaterEqual);
                 } else {
                     self.add_token(TokenType::Greater);
                 }
-            },
-
+            }
 
             '/' => {
                 if self.match_char('/') {
@@ -105,7 +116,7 @@ impl<'a> Scanner<'a> {
                 } else {
                     self.add_token(TokenType::Slash);
                 }
-            },
+            }
 
             ' ' | '\r' | '\t' => (),
             '\n' => self.line += 1,
@@ -142,22 +153,22 @@ impl<'a> Scanner<'a> {
     }
 
     fn peek_next(&self) -> char {
-        if self.current+1> self.source.len() {
-            return '\0'
+        if self.current + 1 > self.source.len() {
+            return '\0';
         }
         self.source.chars().nth(self.current + 1).unwrap()
     }
 
     fn match_char(&mut self, expected: char) -> bool {
-        if self.is_at_end() || self.source.chars().nth(self.current)!=Some(expected) {
-            return false
+        if self.is_at_end() || self.source.chars().nth(self.current) != Some(expected) {
+            return false;
         }
 
         self.current += 1;
         true
     }
 
-    fn string(&mut self){
+    fn string(&mut self) {
         while self.peek() != '"' && !self.is_at_end() {
             if self.peek() == '\n' {
                 self.line += 1;
@@ -181,7 +192,7 @@ impl<'a> Scanner<'a> {
             self.advance();
         }
 
-        if self.peek() == '.' && self.peek_next().is_digit(10){
+        if self.peek() == '.' && self.peek_next().is_digit(10) {
             self.advance(); // consume the "."
             while self.peek().is_digit(10) {
                 self.advance();
@@ -209,12 +220,12 @@ impl<'a> Scanner<'a> {
         c.is_alphanumeric() || c == '_'
     }
 
-    fn add_token_literal(&mut self, token_type: TokenType, literal_str: Option<String>, literal_num: Option<f32>){
+    fn add_token_literal(&mut self, token_type: TokenType, literal_str: Option<String>, literal_num: Option<f32>) {
         let text = &self.source[self.start..self.current];
         self.tokens.push(Token::new(token_type, text, self.line, literal_str, literal_num));
     }
 
-    fn add_token(&mut self, token_type: TokenType){
+    fn add_token(&mut self, token_type: TokenType) {
         self.add_token_literal(token_type, None, None);
     }
 }
@@ -226,38 +237,46 @@ mod tests {
     #[test]
     fn test_single_character_tokens() {
         let source = "!".to_string();
-        let mut scanner = Scanner::new(&source);
-        let tokens = scanner.scan_tokens();
 
-        assert_eq!(tokens.len(), 2);
-        assert_eq!(tokens[0].token_type, TokenType::Bang);
-        assert_eq!(tokens[0].lexeme, "!");
-        assert_eq!(tokens[1].token_type, TokenType::Eof);
+        match scan_tokens(source) {
+            Ok(tokens) => {
+                assert_eq!(tokens.len(), 2);
+                assert_eq!(tokens[0].token_type, TokenType::Bang);
+                assert_eq!(tokens[0].lexeme, "!");
+                assert_eq!(tokens[1].token_type, TokenType::Eof);
+            }
+            Err(e) => panic!("Error: {:?}", e)
+        }
     }
 
     #[test]
     fn test_single_character_with_equal() {
         let source = "!=".to_string();
-        let mut scanner = Scanner::new(&source);
-        let tokens = scanner.scan_tokens();
-
-        assert_eq!(tokens.len(), 2);
-        assert_eq!(tokens[0].token_type, TokenType::BangEqual);
-        assert_eq!(tokens[0].lexeme, "!=");
-        assert_eq!(tokens[1].token_type, TokenType::Eof);
+        match scan_tokens(source) {
+            Ok(tokens) => {
+                assert_eq!(tokens.len(), 2);
+                assert_eq!(tokens[0].token_type, TokenType::BangEqual);
+                assert_eq!(tokens[0].lexeme, "!=");
+                assert_eq!(tokens[1].token_type, TokenType::Eof);
+            }
+            Err(e) => panic!("Error: {:?}", e)
+        }
     }
 
     #[test]
     fn test_keywords() {
         let source = "and class".to_string();
-        let mut scanner = Scanner::new(&source);
-        let tokens = scanner.scan_tokens();
 
-        assert_eq!(tokens.len(), 3);
-        assert_eq!(tokens[0].token_type, TokenType::And);
-        assert_eq!(tokens[0].lexeme, "and");
-        assert_eq!(tokens[1].token_type, TokenType::Class);
-        assert_eq!(tokens[1].lexeme, "class");
-        assert_eq!(tokens[2].token_type, TokenType::Eof);
+        match scan_tokens(source) {
+            Ok(tokens) => {
+                assert_eq!(tokens.len(), 3);
+                assert_eq!(tokens[0].token_type, TokenType::And);
+                assert_eq!(tokens[0].lexeme, "and");
+                assert_eq!(tokens[1].token_type, TokenType::Class);
+                assert_eq!(tokens[1].lexeme, "class");
+                assert_eq!(tokens[2].token_type, TokenType::Eof);
+            }
+            Err(e) => panic!("Error: {:?}", e)
+        }
     }
 }

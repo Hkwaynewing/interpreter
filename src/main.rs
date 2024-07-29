@@ -6,7 +6,7 @@ use std::sync::Mutex;
 
 use once_cell::sync::Lazy;
 
-use crate::scanner::Scanner;
+use crate::parser::Parser;
 
 mod token;
 mod scanner;
@@ -14,7 +14,8 @@ mod error;
 mod expr;
 mod ast_printer;
 mod parser;
-mod Interpreter;
+mod interpreter;
+mod stmt;
 
 static HAD_ERROR: Lazy<Mutex<bool>> = Lazy::new(|| Mutex::new(false));
 
@@ -73,10 +74,18 @@ fn run_prompt() {
 }
 
 fn run(source: &str) {
-    let mut scanner = Scanner::new(source);
-    let tokens = scanner.scan_tokens();
-
-    for token in tokens {
-        println!("{}", token);
-    }
+    match scanner::scan_tokens(source.to_string()) {
+        Ok(tokens) => {
+            let mut parser = Parser::new(tokens);
+            match parser.parse() {
+                Ok(stmt) => {
+                    interpreter::interpret(stmt);
+                }
+                Err(_) => { std::process::exit(-1); }
+            };
+        }
+        Err(_) => {
+            std::process::exit(-1);
+        }
+    };
 }

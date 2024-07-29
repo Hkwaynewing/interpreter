@@ -1,5 +1,6 @@
 use crate::error::{Error, error_tok};
 use crate::expr::Expr;
+use crate::stmt::Stmt;
 use crate::token::{Token, TokenType};
 
 /*
@@ -17,8 +18,12 @@ pub struct Parser {
 }
 
 impl Parser {
-    pub fn parse(&mut self) -> Result<Expr, Error> {
-        self.expression()
+    pub fn parse(&mut self) -> Result<Vec<Stmt>, Error> {
+        let mut statements = Vec::new();
+        while !self.is_at_end() {
+            statements.push(self.statement()?)
+        }
+        Ok(statements)
     }
 
     pub fn new(tokens: Vec<Token>) -> Self {
@@ -163,6 +168,24 @@ impl Parser {
             }
         }
     }
+    fn statement(&mut self) -> Result<Stmt, Error> {
+        if self.match_token(&[TokenType::Print]) {
+            return self.print_statement();
+        }
+        self.expression_statement()
+    }
+
+    fn print_statement(&mut self) -> Result<Stmt, Error> {
+        let value = self.expression()?;
+        self.consume(TokenType::Semicolon, "Expect ';' after value.")?;
+        Ok(Stmt::Print(value))
+    }
+
+    fn expression_statement(&mut self) -> Result<Stmt, Error> {
+        let value = self.expression()?;
+        self.consume(TokenType::Semicolon, "Expect ';' after value.")?;
+        Ok(Stmt::Expression(value))
+    }
 }
 
 #[cfg(test)]
@@ -179,9 +202,11 @@ mod tests {
         ];
         let mut parser = Parser::new(tokens);
         match parser.parse() {
-            Ok(expr) => {
-                let ast_printer = crate::ast_printer::print(&expr);
-                assert_eq!(ast_printer, "(* 123 45.67)");
+            Ok(stmts) => {
+                for stmt in stmts {
+                    let ast_printer = crate::ast_printer::print_stmt(&stmt);
+                    assert_eq!(ast_printer, "(* 123 45.67)");
+                }
             }
             Err(e) => {
                 assert!(false);

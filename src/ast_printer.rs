@@ -1,6 +1,7 @@
 use std::fmt::Display;
 
 use crate::expr::Expr;
+use crate::stmt::Stmt;
 
 pub fn print(expr: &Expr) -> String {
     match expr {
@@ -16,6 +17,13 @@ pub fn print(expr: &Expr) -> String {
         Expr::LiteralNum(opt) => print_literal(opt),
         Expr::LiteralStr(opt) => print_literal(opt),
         Expr::LiteralBool(opt) => print_literal(opt)
+    }
+}
+
+pub fn print_stmt(stmt: &Stmt) -> String {
+    match stmt {
+        Stmt::Expression(expr) => print(expr),
+        Stmt::Print(expr) => format!("(print {})", print(expr))
     }
 }
 
