@@ -10,7 +10,7 @@ comparison     → term ( ( ">" | ">=" | "<" | "<=" ) term )* ;
 term           → factor ( ( "-" | "+" ) factor )* ;
 factor         → unary ( ( "/" | "*" ) unary )* ;
 unary          → ( "!" | "-" ) unary | primary ;
-primary        → NUMBER | STRING | "true" | "false" | "nil" | "(" expression ")" ;
+primary        → NUMBER | STRING | "true" | "false" | "nil" | "(" expression ") | IDENTIFIER" ;
  */
 pub struct Parser {
     tokens: Vec<Token>,
@@ -21,7 +21,7 @@ impl Parser {
     pub fn parse(&mut self) -> Result<Vec<Stmt>, Error> {
         let mut statements = Vec::new();
         while !self.is_at_end() {
-            statements.push(self.statement()?)
+            statements.push(self.declaration()?)
         }
         Ok(statements)
     }
@@ -100,6 +100,9 @@ impl Parser {
         if self.match_token(&[TokenType::Nil]) {
             return Ok(Expr::LiteralStr(None));
         }
+        if self.match_token(&[TokenType::Identifier]) {
+            return Ok(Expr::Variable(self.previous().clone()));
+        }
         if self.match_token(&[TokenType::LeftParen]) {
             let expr = self.expression()?;
             self.consume(TokenType::RightParen, "Expect ')' after expression.")?;
@@ -127,7 +130,7 @@ impl Parser {
     }
 
     fn previous(&self) -> &Token {
-        return &self.tokens[self.current - 1];
+        &self.tokens[self.current - 1]
     }
     fn advance(&mut self) -> &Token {
         if !self.is_at_end() {
@@ -179,6 +182,23 @@ impl Parser {
         let value = self.expression()?;
         self.consume(TokenType::Semicolon, "Expect ';' after value.")?;
         Ok(Stmt::Print(value))
+    }
+
+    fn declaration(&mut self) -> Result<Stmt, Error> {
+        if self.match_token(&[TokenType::Var]) {
+            return self.var_declaration();
+        }
+        self.statement()
+    }
+
+    fn var_declaration(&mut self) -> Result<Stmt, Error> {
+        let name = self.consume(TokenType::Identifier, "Expect variable name.")?;
+        let value = match self.match_token(&[TokenType::Equal]) {
+            true => Some(self.expression()?),
+            false => None
+        };
+        self.consume(TokenType::Semicolon, "Expect ';' after variable declaration.")?;
+        Ok(Stmt::Var(name.clone(), value))
     }
 
     fn expression_statement(&mut self) -> Result<Stmt, Error> {

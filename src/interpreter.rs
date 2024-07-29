@@ -33,6 +33,7 @@ fn interpret_stmt(stmt: Stmt) -> Result<Value, Error> {
             }
             return result;
         }
+        Stmt::Var(_, _) => { todo!() }
     }
 }
 
@@ -109,6 +110,7 @@ fn evaluate(expr: Expr) -> Result<Value, Error> {
                 _ => Err(RuntimeError(Option::from("Operands must be numbers".to_string()))),
             }
         }
+        Expr::Variable(_) => { todo!() }
     }
 }
 

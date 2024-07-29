@@ -20,4 +20,5 @@ pub enum Expr {
     LiteralStr(Option<String>),
     LiteralBool(Option<bool>),
     Unary(Token, Box<Expr>),
+    Variable(Token),
 }

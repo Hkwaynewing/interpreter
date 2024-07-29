@@ -1,7 +1,11 @@
 use crate::expr::Expr;
+use crate::token::Token;
 
 /*
-program        → statement* EOF ;
+program        → declaration* EOF ;
+
+declaration    → varDecl
+               | statement ;
 
 statement      → exprStmt
                | printStmt ;
@@ -12,4 +16,5 @@ printStmt      → "print" expression ";" ;
 pub enum Stmt {
     Expression(Expr),
     Print(Expr),
+    Var(Token, Option<Expr>),
 }
