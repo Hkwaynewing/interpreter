@@ -192,13 +192,13 @@ impl Parser {
     }
 
     fn var_declaration(&mut self) -> Result<Stmt, Error> {
-        let name = self.consume(TokenType::Identifier, "Expect variable name.")?;
+        let name = self.consume(TokenType::Identifier, "Expect variable name.")?.clone();
         let value = match self.match_token(&[TokenType::Equal]) {
             true => Some(self.expression()?),
             false => None
         };
         self.consume(TokenType::Semicolon, "Expect ';' after variable declaration.")?;
-        Ok(Stmt::Var(name.clone(), value))
+        Ok(Stmt::Var(name, value))
     }
 
     fn expression_statement(&mut self) -> Result<Stmt, Error> {
