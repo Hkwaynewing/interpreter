@@ -6,6 +6,7 @@ use std::sync::Mutex;
 
 use once_cell::sync::Lazy;
 
+use crate::interpreter::Interpreter;
 use crate::parser::Parser;
 
 mod token;
@@ -16,8 +17,10 @@ mod ast_printer;
 mod parser;
 mod interpreter;
 mod stmt;
+mod environment;
 
 static HAD_ERROR: Lazy<Mutex<bool>> = Lazy::new(|| Mutex::new(false));
+static INTERPRETER: Lazy<Mutex<Interpreter>> = Lazy::new(|| Mutex::new(Interpreter::new()));
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -79,7 +82,7 @@ fn run(source: &str) {
             let mut parser = Parser::new(tokens);
             match parser.parse() {
                 Ok(stmt) => {
-                    interpreter::interpret(stmt);
+                    INTERPRETER.lock().unwrap().interpret(stmt);
                 }
                 Err(_) => { std::process::exit(-1); }
             };
