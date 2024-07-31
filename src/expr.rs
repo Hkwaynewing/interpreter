@@ -14,6 +14,7 @@ operator       → "==" | "!=" | "<" | "<=" | ">" | ">="
                | "+"  | "-"  | "*" | "/" ;
  **/
 pub enum Expr {
+    Assign(Token, Box<Expr>),
     Binary(Box<Expr>, Token, Box<Expr>),
     Grouping(Box<Expr>),
     LiteralNum(Option<f32>),

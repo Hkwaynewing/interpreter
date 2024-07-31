@@ -18,6 +18,7 @@ pub fn print(expr: &Expr) -> String {
         Expr::LiteralStr(opt) => print_literal(opt),
         Expr::LiteralBool(opt) => print_literal(opt),
         Expr::Variable(_) => { todo!() }
+        Expr::Assign(_, _) => { todo!() }
     }
 }
 

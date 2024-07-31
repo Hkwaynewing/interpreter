@@ -26,4 +26,16 @@ impl Environment {
             None => Err(RuntimeError(Option::from(format!("Undefined variable '{}'.", name.lexeme)))),
         }
     }
+
+    pub(crate) fn assign(&mut self, name: &Token, value: Value) -> Result<Value, Error> {
+        match self.values.contains_key(&name.lexeme) {
+            true => {
+                self.values.insert(name.lexeme.clone(), value.clone());
+                Ok(value)
+            }
+            false => {
+                Err(RuntimeError(Option::from(format!("Undefined variable '{}'.", name.lexeme))))
+            }
+        }
+    }
 }

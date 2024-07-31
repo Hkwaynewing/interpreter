@@ -4,7 +4,9 @@ use crate::stmt::Stmt;
 use crate::token::{Token, TokenType};
 
 /*
-expression     → equality ;
+expression     → assignment ;
+assignment     → IDENTIFIER "=" assignment
+               | equality ;
 equality       → comparison ( ( "!=" | "==" ) comparison )* ; (...)* means 0 or more
 comparison     → term ( ( ">" | ">=" | "<" | "<=" ) term )* ;
 term           → factor ( ( "-" | "+" ) factor )* ;
@@ -34,7 +36,29 @@ impl Parser {
     }
 
     fn expression(&mut self) -> Result<Expr, Error> {
-        self.equality()
+        self.assignment()
+    }
+
+    fn assignment(&mut self) -> Result<Expr, Error> {
+        let expr = self.equality();
+        if self.match_token(&[TokenType::Equal]) {
+            let equals = self.previous().clone();
+            let value = self.assignment();
+            match expr {
+                Ok(expr) => match value {
+                    Ok(value) => {
+                        if let Expr::Variable(name) = expr {
+                            return Ok(Expr::Assign(name, Box::new(value)));
+                        }
+                        error_tok(&equals, "Invalid assignment target.");
+                        return Err(Error::ParseError(Option::from("Invalid assignment target.".to_string())));
+                    }
+                    Err(e) => return Err(e),
+                },
+                Err(e) => return Err(e),
+            };
+        }
+        expr
     }
 
     fn equality(&mut self) -> Result<Expr, Error> {
@@ -72,6 +96,7 @@ impl Parser {
         Ok(left)
     }
 
+
     fn unary(&mut self) -> Result<Expr, Error> {
         if self.match_token(&[TokenType::Bang, TokenType::Minus]) {
             let op = self.previous().clone();
@@ -82,7 +107,6 @@ impl Parser {
         }
         self.primary()
     }
-
 
     fn primary(&mut self) -> Result<Expr, Error> {
         if self.match_token(&[TokenType::Number]) {
@@ -128,7 +152,6 @@ impl Parser {
     fn current_token(&self) -> &Token {
         &self.tokens[self.current]
     }
-
     fn previous(&self) -> &Token {
         &self.tokens[self.current - 1]
     }
@@ -138,6 +161,7 @@ impl Parser {
         }
         self.previous()
     }
+
     fn is_at_end(&self) -> bool {
         self.current >= self.tokens.len()
     }
@@ -149,7 +173,6 @@ impl Parser {
         error_tok(self.current_token(), msg);
         Err(Error::ParseError(Option::from(msg.to_string())))
     }
-
     fn synchonize(&mut self) {
         self.advance();
         while !self.is_at_end() {
@@ -171,6 +194,7 @@ impl Parser {
             }
         }
     }
+
     fn statement(&mut self) -> Result<Stmt, Error> {
         if self.match_token(&[TokenType::Print]) {
             return self.print_statement();
@@ -200,7 +224,6 @@ impl Parser {
         self.consume(TokenType::Semicolon, "Expect ';' after variable declaration.")?;
         Ok(Stmt::Var(name, value))
     }
-
     fn expression_statement(&mut self) -> Result<Stmt, Error> {
         let value = self.expression()?;
         self.consume(TokenType::Semicolon, "Expect ';' after value.")?;

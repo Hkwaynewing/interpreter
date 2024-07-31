@@ -68,7 +68,7 @@ impl Interpreter {
         }
     }
 
-    fn evaluate(&self, expr: Expr) -> Result<Value, Error> {
+    fn evaluate(&mut self, expr: Expr) -> Result<Value, Error> {
         match expr {
             Expr::LiteralNum(num) => Ok(Value::Number(num.unwrap())),
             Expr::LiteralStr(s) => Ok(Value::String(s.unwrap())),
@@ -132,6 +132,11 @@ impl Interpreter {
             }
             Expr::Variable(identifier) => {
                 self.environment.get(&identifier)
+            }
+            Expr::Assign(name, value) => {
+                let value = self.evaluate(*value)?;
+                self.environment.assign(&name, value.clone())?;
+                Ok(value)
             }
         }
     }
