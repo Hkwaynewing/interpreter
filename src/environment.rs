@@ -6,12 +6,21 @@ use crate::interpreter::Value;
 use crate::token::Token;
 
 pub struct Environment {
+    pub enclosing: Option<Box<Environment>>,
     pub values: HashMap<String, Value>,
 }
 
 impl Environment {
     pub fn new() -> Self {
         Self {
+            enclosing: None,
+            values: HashMap::new(),
+        }
+    }
+
+    pub fn new_enclosing(enclosing: Environment) -> Self {
+        Self {
+            enclosing: Some(Box::new(enclosing)),
             values: HashMap::new(),
         }
     }
@@ -23,7 +32,10 @@ impl Environment {
     pub fn get(&self, name: &Token) -> Result<Value, Error> {
         match self.values.get(&name.lexeme) {
             Some(value) => Ok(value.clone()),
-            None => Err(RuntimeError(Option::from(format!("Undefined variable '{}'.", name.lexeme)))),
+            None => match &self.enclosing {
+                Some(parent_env) => { parent_env.get(name) }
+                None => { Err(RuntimeError(Option::from(format!("Undefined variable '{}'.", name.lexeme)))) }
+            },
         }
     }
 
@@ -34,7 +46,10 @@ impl Environment {
                 Ok(value)
             }
             false => {
-                Err(RuntimeError(Option::from(format!("Undefined variable '{}'.", name.lexeme))))
+                match &self.enclosing {
+                    Some(ref parent_env) => { parent_env.assign(name, value) }
+                    None => { Err(RuntimeError(Option::from(format!("Undefined variable '{}'.", name.lexeme)))) }
+                }
             }
         }
     }
