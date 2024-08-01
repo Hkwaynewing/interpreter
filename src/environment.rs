@@ -46,8 +46,8 @@ impl Environment {
                 Ok(value)
             }
             false => {
-                match &self.enclosing {
-                    Some(ref parent_env) => { parent_env.assign(name, value) }
+                match &mut self.enclosing {
+                    Some(parent_env) => { parent_env.assign(name, value) }
                     None => { Err(RuntimeError(Option::from(format!("Undefined variable '{}'.", name.lexeme)))) }
                 }
             }
