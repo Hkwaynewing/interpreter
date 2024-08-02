@@ -2,6 +2,7 @@ use crate::environment::Environment;
 use crate::error::{Error, runtime_error};
 use crate::error::Error::RuntimeError;
 use crate::expr::Expr;
+use crate::interpreter::Value::Nil;
 use crate::stmt::Stmt;
 use crate::token::TokenType;
 
@@ -55,6 +56,19 @@ impl Interpreter {
                         Ok(Value::Nil)
                     }
                 }
+            }
+            Stmt::Block(stmts) => {
+                self.environment = Environment::new_enclosing(self.environment.clone());
+                for stmt in stmts {
+                    self.interpret_stmt(stmt)?;
+                }
+                if let Some(enclosing) = self.environment.enclosing.clone() {
+                    self.environment = *enclosing
+                } else {
+                    // TODO: how to do this without a runtime check?
+                    panic!("impossible");
+                }
+                Ok(Nil)
             }
         }
     }

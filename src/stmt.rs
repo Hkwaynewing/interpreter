@@ -8,8 +8,10 @@ declaration    → varDecl
                | statement ;
 
 statement      → exprStmt
-               | printStmt ;
+               | printStmt
+               | block;
 
+block          → "{" declaration* "}" ;
 exprStmt       → expression ";" ;
 printStmt      → "print" expression ";" ;
  */
@@ -17,4 +19,5 @@ pub enum Stmt {
     Expression(Expr),
     Print(Expr),
     Var(Token, Option<Expr>),
+    Block(Vec<Stmt>),
 }

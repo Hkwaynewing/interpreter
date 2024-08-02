@@ -26,7 +26,7 @@ pub fn print_stmt(stmt: &Stmt) -> String {
     match stmt {
         Stmt::Expression(expr) => print(expr),
         Stmt::Print(expr) => format!("(print {})", print(expr)),
-        Stmt::Var(_, _) => { todo!() }
+        _ => { todo!() }
     }
 }
 

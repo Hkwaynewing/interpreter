@@ -5,6 +5,7 @@ use crate::error::Error::RuntimeError;
 use crate::interpreter::Value;
 use crate::token::Token;
 
+#[derive(Debug, Default, Clone)]
 pub struct Environment {
     pub enclosing: Option<Box<Environment>>,
     pub values: HashMap<String, Value>,

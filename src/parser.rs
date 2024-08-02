@@ -199,6 +199,9 @@ impl Parser {
         if self.match_token(&[TokenType::Print]) {
             return self.print_statement();
         }
+        if self.match_token(&[TokenType::LeftBrace]) {
+            return self.block_statement();
+        }
         self.expression_statement()
     }
 
@@ -228,6 +231,14 @@ impl Parser {
         let value = self.expression()?;
         self.consume(TokenType::Semicolon, "Expect ';' after value.")?;
         Ok(Stmt::Expression(value))
+    }
+    fn block_statement(&mut self) -> Result<Stmt, Error> {
+        let mut stmts = Vec::new();
+        while !self.check(TokenType::RightBrace) && !self.is_at_end() {
+            stmts.push(self.declaration()?);
+        }
+        self.consume(TokenType::RightBrace, "Expect '}' after block.")?;
+        Ok(Stmt::Block(stmts))
     }
 }
 
